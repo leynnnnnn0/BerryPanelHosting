@@ -2,8 +2,8 @@ FROM php:8.4-cli
 WORKDIR /app
 
 RUN apt-get update && apt-get install -y \
-    unzip git curl libxml2-dev libzip-dev libonig-dev \
-    && docker-php-ext-install xml mbstring zip \
+    unzip git curl libxml2-dev libzip-dev libonig-dev default-mysql-client \
+    && docker-php-ext-install xml mbstring zip pdo_mysql \
     && curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
 
 RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \

@@ -4,10 +4,11 @@ services:
     container_name: berrypanel-main
     command: ["php", "artisan", "serve", "--host=0.0.0.0", "--port=8000"]
     volumes:
-      - berrypanel-data:/app/database
       - /var/run/docker.sock:/var/run/docker.sock
     networks:
       - web
+    depends_on:
+      - mysql
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.berrypanel.rule=Host(`berrypanel.localhost`)"
@@ -18,19 +19,17 @@ services:
     container_name: berrypanel-queue
     command: ["php", "artisan", "queue:work", "--tries=3"]
     volumes:
-      - berrypanel-data:/app/database
       - /var/run/docker.sock:/var/run/docker.sock
     networks:
       - web
     depends_on:
+      - mysql
       - website
 
   reverb:
     build: .
     container_name: berrypanel-reverb
     command: ["php", "artisan", "reverb:start", "--host=0.0.0.0", "--port=8080"]
-    volumes:
-      - berrypanel-data:/app/database
     networks:
       - web
     labels:
@@ -38,9 +37,23 @@ services:
       - "traefik.http.routers.reverb.rule=Host(`ws.berrypanel.localhost`)"
       - "traefik.http.services.reverb.loadbalancer.server.port=8080"
 
+  mysql:
+    image: mysql:8.0
+    container_name: berrypanel-mysql
+    restart: always
+    environment:
+      MYSQL_DATABASE: berrypanel
+      MYSQL_USER: berrypanel
+      MYSQL_PASSWORD: secret
+      MYSQL_ROOT_PASSWORD: rootsecret
+    volumes:
+      - berrypanel-mysql-data:/var/lib/mysql
+    networks:
+      - web
+
 networks:
   web:
     external: true
 
 volumes:
-  berrypanel-data:
+  berrypanel-mysql-data:
