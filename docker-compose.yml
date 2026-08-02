@@ -1,0 +1,21 @@
+services:
+  website:
+    build: .
+    container_name: berrypanel-main
+    volumes:
+      - berrypanel-data:/app/database
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - web
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.berrypanel.rule=Host(`berrypanel.localhost`)"
+      - "traefik.http.services.berrypanel.loadbalancer.server.port=8000"
+
+networks:
+  web:
+    external: true
+
+volumes:
+  berrypanel-data:
+  
