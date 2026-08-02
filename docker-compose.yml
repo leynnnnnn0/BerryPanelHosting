@@ -41,6 +41,7 @@ services:
     image: mysql:8.0
     container_name: berrypanel-mysql
     restart: always
+    command: --require_secure_transport=OFF
     environment:
       MYSQL_DATABASE: berrypanel
       MYSQL_USER: berrypanel
