@@ -19,6 +19,7 @@ class DeploymentController extends Controller
             'is_dockerized' => 'required|in:yes,no',
         ]);
         $validatedData['user_id'] = Auth::id();
+        $validatedData['is_dockerized'] = $validatedData['is_dockerized'] === 'yes';
         $site = Site::create($validatedData + ['status' => 'pending']);
 
         DeploySite::dispatch($site, $validatedData['github_url'], Auth::user()->username);
