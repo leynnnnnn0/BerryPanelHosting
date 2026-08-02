@@ -2,6 +2,7 @@ services:
   website:
     build: .
     container_name: berrypanel-main
+    command: ["php", "artisan", "serve", "--host=0.0.0.0", "--port=8000"]
     volumes:
       - berrypanel-data:/app/database
       - /var/run/docker.sock:/var/run/docker.sock
@@ -12,10 +13,34 @@ services:
       - "traefik.http.routers.berrypanel.rule=Host(`berrypanel.localhost`)"
       - "traefik.http.services.berrypanel.loadbalancer.server.port=8000"
 
+  queue-worker:
+    build: .
+    container_name: berrypanel-queue
+    command: ["php", "artisan", "queue:work", "--tries=3"]
+    volumes:
+      - berrypanel-data:/app/database
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - web
+    depends_on:
+      - website
+
+  reverb:
+    build: .
+    container_name: berrypanel-reverb
+    command: ["php", "artisan", "reverb:start", "--host=0.0.0.0", "--port=8080"]
+    volumes:
+      - berrypanel-data:/app/database
+    networks:
+      - web
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.reverb.rule=Host(`ws.berrypanel.localhost`)"
+      - "traefik.http.services.reverb.loadbalancer.server.port=8080"
+
 networks:
   web:
     external: true
 
 volumes:
   berrypanel-data:
-  
