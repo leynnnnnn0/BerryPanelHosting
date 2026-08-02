@@ -6,7 +6,7 @@ if [ ! -f .env ]; then
 fi
 
 echo "Waiting for MySQL..."
-until php artisan db:show > /dev/null 2>&1; do
+until php artisan migrate:status > /dev/null 2>&1; do
   sleep 2
 done
 
