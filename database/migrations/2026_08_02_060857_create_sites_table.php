@@ -17,6 +17,7 @@ return new class extends Migration
             $table->string('project_name')->unique();
             $table->boolean('is_dockerized');
             $table->string('status')->default('pending');
+            $table->text('error_message')->nullable();
             $table->timestamps();
         });
     }
