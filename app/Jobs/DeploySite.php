@@ -78,27 +78,31 @@ class DeploySite implements ShouldQueue
      */
     protected function ensurePhpVersionHint(string $sitePath): void
     {
-        $composerJsonPath = $sitePath . '/composer.json';
+        $composerLockPath = $sitePath . '/composer.lock';
 
-        if (!File::exists($composerJsonPath)) {
-            return; // not a PHP project, nothing to do
-        }
-
-        $composerJson = json_decode(File::get($composerJsonPath), true);
-        $constraint = $composerJson['require']['php'] ?? null;
-
-        if (!$constraint) {
+        if (!File::exists($composerLockPath)) {
             return;
         }
 
-        preg_match('/(\d+\.\d+)/', $constraint, $matches);
-        $version = $matches[1] ?? '8.4';
+        $composerLock = json_decode(File::get($composerLockPath), true);
+
+        $platformPhp = $composerLock['platform-overrides']['php']
+            ?? $composerLock['platform']['php']
+            ?? null;
+
+        $hasLaravel = collect($composerLock['packages'] ?? [])
+            ->contains(fn($pkg) => $pkg['name'] === 'laravel/framework');
+
+        $version = $platformPhp
+            ? preg_replace('/\.\d+$/', '', $platformPhp)
+            : ($hasLaravel ? '8.4' : '8.2');
+
         $nixVersion = 'php' . str_replace('.', '', $version);
 
         File::put($sitePath . '/nixpacks.toml', <<<TOML
-        [phases.setup]
-        nixPkgs = ["{$nixVersion}", "{$nixVersion}Packages.composer"]
-        TOML);
+    [phases.setup]
+    nixPkgs = ["{$nixVersion}", "{$nixVersion}Packages.composer"]
+    TOML);
     }
 
     protected function updateStatus(string $status, ?string $errorMessage = null): void
