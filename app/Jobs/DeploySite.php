@@ -86,16 +86,21 @@ class DeploySite implements ShouldQueue
 
         $composerLock = json_decode(File::get($composerLockPath), true);
 
-        $platformPhp = $composerLock['platform-overrides']['php']
-            ?? $composerLock['platform']['php']
-            ?? null;
-
         $hasLaravel = collect($composerLock['packages'] ?? [])
             ->contains(fn($pkg) => $pkg['name'] === 'laravel/framework');
 
-        $version = $platformPhp
-            ? preg_replace('/\.\d+$/', '', $platformPhp)
-            : ($hasLaravel ? '8.4' : '8.2');
+        $raw = $composerLock['platform-overrides']['php']
+            ?? $composerLock['platform']['php']
+            ?? null;
+
+        $version = null;
+        if ($raw && preg_match('/(\d+)\.(\d+)/', $raw, $matches)) {
+            $version = $matches[1] . '.' . $matches[2];
+        }
+
+        if (!$version) {
+            $version = $hasLaravel ? '8.4' : '8.2';
+        }
 
         $nixVersion = 'php' . str_replace('.', '', $version);
 
