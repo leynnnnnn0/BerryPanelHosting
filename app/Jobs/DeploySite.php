@@ -53,6 +53,10 @@ class DeploySite implements ShouldQueue
 
         $hasDockerfile = File::exists($sitePath . '/Dockerfile');
 
+        if (!$hasDockerfile) {
+            $this->ensurePhpVersionHint($sitePath);
+        }
+
         $result = $hasDockerfile
             ? Process::path($sitePath)->timeout(300)->run(['docker', 'build', '-t', $this->site->project_name, '.'])
             : Process::path($sitePath)->timeout(300)->run(['nixpacks', 'build', '.', '--name', $this->site->project_name]);
@@ -64,6 +68,37 @@ class DeploySite implements ShouldQueue
 
         // ---- Done ----
         $this->updateStatus('built');
+    }
+
+    /**
+     * Nixpacks sometimes picks a default PHP version instead of reading
+     * composer.json's actual requirement, which breaks builds for any
+     * project needing PHP 8.4+. This writes an explicit nixpacks.toml
+     * so Nixpacks uses the correct version.
+     */
+    protected function ensurePhpVersionHint(string $sitePath): void
+    {
+        $composerJsonPath = $sitePath . '/composer.json';
+
+        if (!File::exists($composerJsonPath)) {
+            return; // not a PHP project, nothing to do
+        }
+
+        $composerJson = json_decode(File::get($composerJsonPath), true);
+        $constraint = $composerJson['require']['php'] ?? null;
+
+        if (!$constraint) {
+            return;
+        }
+
+        preg_match('/(\d+\.\d+)/', $constraint, $matches);
+        $version = $matches[1] ?? '8.4';
+        $nixVersion = 'php' . str_replace('.', '', $version);
+
+        File::put($sitePath . '/nixpacks.toml', <<<TOML
+        [phases.setup]
+        nixPkgs = ["{$nixVersion}", "{$nixVersion}Packages.composer"]
+        TOML);
     }
 
     protected function updateStatus(string $status, ?string $errorMessage = null): void
